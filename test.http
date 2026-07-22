@@ -1,0 +1,9 @@
+### 新增学生
+POST http://localhost:8080/students
+Content-Type: application/json
+
+{
+  "name": "王小明",
+  "age": 20,
+  "score": 88.0
+}
