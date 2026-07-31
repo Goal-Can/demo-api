@@ -69,3 +69,14 @@ code 含义
 200 请求成功
 400 参数错误或业务异常
 500 服务器内部错误
+
+## 📝 作者
+
+- **姓名**：蒋灿
+- **邮箱**：jcan@stu.xhu.edu.cn（填你自己的实际邮箱）
+- **GitHub**：[Goal-Can](https://github.com/Goal-Can)
+- **项目时间**：2026年7月
+
+## 📄 许可证
+
+本项目采用 [MIT License](https://opensource.org/licenses/MIT) 开源协议，仅供学习交流使用。
