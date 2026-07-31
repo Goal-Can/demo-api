@@ -18,22 +18,26 @@ public class Student {
     @Min(value = 0, message = "成绩不能小于0")
     private Double score;
 
+    private String gender;  // 你之前加的性别字段
+
     // 无参构造
     public Student() {}
 
-    // 带 id 的构造（用于查询结果封装）
-    public Student(int id, String name, Integer age, Double score) {
+    // 带 id 构造（查询用）
+    public Student(int id, String name, Integer age, Double score, String gender) {
         this.id = id;
         this.name = name;
         this.age = age;
         this.score = score;
+        this.gender = gender;
     }
 
-    // 不带 id 的构造（用于新增）
-    public Student(String name, Integer age, Double score) {
+    // 不带 id 构造（新增用）
+    public Student(String name, Integer age, Double score, String gender) {
         this.name = name;
         this.age = age;
         this.score = score;
+        this.gender = gender;
     }
 
     // Getter & Setter
@@ -45,4 +49,6 @@ public class Student {
     public void setAge(Integer age) { this.age = age; }
     public Double getScore() { return score; }
     public void setScore(Double score) { this.score = score; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 }

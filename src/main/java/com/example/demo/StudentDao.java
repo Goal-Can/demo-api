@@ -21,14 +21,14 @@ public class StudentDao {
                     rs.getInt("id"),
                     rs.getString("name"),
                     rs.getInt("age"),
-                    rs.getDouble("score")
+                    rs.getDouble("score"),
+                    rs.getString("gender")
             );
         }
     };
 
     public List<Student> findAll() {
         String sql = "SELECT * FROM students";
-        System.out.println("3.Dao执行SQL");
         return jdbcTemplate.query(sql, rowMapper);
     }
 
@@ -38,13 +38,13 @@ public class StudentDao {
     }
 
     public void insert(Student s) {
-        String sql = "INSERT INTO students (name, age, score) VALUES (?, ?, ?)";
-        jdbcTemplate.update(sql, s.getName(), s.getAge(), s.getScore());
+        String sql = "INSERT INTO students (name, age, score, gender) VALUES (?, ?, ?, ?)";
+        jdbcTemplate.update(sql, s.getName(), s.getAge(), s.getScore(), s.getGender());
     }
 
     public void update(Student s) {
-        String sql = "UPDATE students SET name = ?, age = ?, score = ? WHERE id = ?";
-        jdbcTemplate.update(sql, s.getName(), s.getAge(), s.getScore(), s.getId());
+        String sql = "UPDATE students SET name = ?, age = ?, score = ?, gender = ? WHERE id = ?";
+        jdbcTemplate.update(sql, s.getName(), s.getAge(), s.getScore(), s.getGender(), s.getId());
     }
 
     public void delete(int id) {

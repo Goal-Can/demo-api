@@ -11,7 +11,6 @@ public class StudentService {
     private StudentDao studentDao;
 
     public List<Student> findAll() {
-        System.out.println("2.Service 开始处理");
         return studentDao.findAll();
     }
 
