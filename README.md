@@ -73,7 +73,7 @@ code 含义
 ## 📝 作者
 
 - **姓名**：蒋灿
-- **邮箱**：jcan@stu.xhu.edu.cn（填你自己的实际邮箱）
+- **邮箱**：2552684212@qq.com
 - **GitHub**：[Goal-Can](https://github.com/Goal-Can)
 - **项目时间**：2026年7月
 
