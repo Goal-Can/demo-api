@@ -29,10 +29,15 @@
         .loading { text-align: center; color: #888; padding: 10px; }
         #editId { display: none; }
         .action-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .login-status { text-align: right; color: #666; font-size: 14px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 <h1>📋 学生管理系统</h1>
+
+<!-- 登录状态 -->
+<div class="login-status" id="loginStatus">⏳ 正在登录...</div>
 
 <!-- 新增/修改表单 -->
 <div class="card">
@@ -72,34 +77,100 @@
 </div>
 
 <script>
-    const API = 'http://8.156.74.250:8081/students';
+    const API_BASE = 'http://8.156.74.250:8081';
+    const LOGIN_URL = API_BASE + '/auth/login';
+    const STUDENT_API = API_BASE + '/students';
 
+    let currentPage = 1;
+    const pageSize = 3;
+    let authToken = null;
+
+    // -------- 登录 --------
+    function loginAndGetToken() {
+        return fetch(LOGIN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: 'admin',
+                password: '123456'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.code === 200 && data.data && data.data.token) {
+                authToken = data.data.token;
+                document.getElementById('loginStatus').textContent = '✅ 已登录';
+                return authToken;
+            } else {
+                document.getElementById('loginStatus').textContent = '❌ 登录失败，请刷新重试';
+                throw new Error('登录失败：' + (data.message || '未知错误'));
+            }
+        });
+    }
+
+    // -------- 带 token 的请求封装 --------
+    function fetchWithAuth(url, options = {}) {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken,
+            ...(options.headers || {})
+        };
+        return fetch(url, {
+            ...options,
+            headers: headers
+        });
+    }
+
+    // -------- 加载学生列表 --------
     function loadStudents() {
         const resultDiv = document.getElementById('result');
         resultDiv.innerHTML = '<div class="loading">加载中...</div>';
 
-        fetch(API)
+        if (!authToken) {
+            resultDiv.innerHTML = '<p class="error">请先登录</p >';
+            return;
+        }
+
+        fetchWithAuth(STUDENT_API + `/page?page=${currentPage}&size=${pageSize}`)
             .then(res => res.json())
             .then(data => {
-                if (data.code === 200 && data.data && data.data.length > 0) {
+                if (data.code === 200 && data.data && data.data.records) {
+                    const pageData = data.data;
+                    const records = pageData.records;
+                    const total = pageData.total;
+                    const pages = pageData.pages;
+
                     let html = `<table><tr><th>ID</th><th>姓名</th><th>年龄</th><th>成绩</th><th>性别</th><th>操作</th></tr>`;
-                    data.data.forEach(s => {
-                        html += `<tr>
-                            <td>${s.id}</td>
-                            <td>${s.name}</td>
-                            <td>${s.age}</td>
-                            <td>${s.score}</td>
-                            <td>${s.gender || ''}</td>
-                            <td>
-                                <button class="btn btn-warning btn-sm" onclick="editStudent(${s.id})">✏️</button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">🗑️</button>
-                            </td>
-                        </tr>`;
-                    });
+                    if (records.length > 0) {
+                        records.forEach(s => {
+                            html += `<tr>
+                                <td>${s.id}</td>
+                                <td>${s.name}</td>
+                                <td>${s.age}</td>
+                                <td>${s.score}</td>
+                                <td>${s.gender || ''}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm" onclick="editStudent(${s.id})">✏️</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">🗑️</button>
+                                </td>
+                            </tr>`;
+                        });
+                    } else {
+                        html += `<tr><td colspan="6">暂无数据</td></tr>`;
+                    }
                     html += `</table>`;
+
+                    html += `<div style="margin-top:15px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <span>共 ${total} 条，第 ${currentPage}/${pages} 页</span>
+                        <button class="btn btn-primary btn-sm" onclick="changePage(-1)" id="prevBtn">上一页</button>
+                        <button class="btn btn-primary btn-sm" onclick="changePage(1)" id="nextBtn">下一页</button>
+                    </div>`;
+
                     resultDiv.innerHTML = html;
+                    document.getElementById('prevBtn').disabled = (currentPage <= 1);
+                    document.getElementById('nextBtn').disabled = (currentPage >= pages);
                 } else {
-                    resultDiv.innerHTML = `<p class="error">暂无学生数据</p >`;
+                    resultDiv.innerHTML = `<p class="error">暂无数据或请求失败</p >`;
                 }
             })
             .catch(err => {
@@ -107,6 +178,13 @@
             });
     }
 
+    // -------- 翻页 --------
+    function changePage(delta) {
+        currentPage += delta;
+        loadStudents();
+    }
+
+    // -------- 提交（新增/修改） --------
     function submitStudent() {
         const id = document.getElementById('editId').value;
         const name = document.getElementById('nameInput').value.trim();
@@ -119,12 +197,11 @@
         if (score === '' || score < 0) { alert('请输入有效成绩'); return; }
 
         const student = { name, age: parseInt(age), score: parseFloat(score), gender };
-        const url = id ? `${API}/${id}` : API;
+        const url = id ? `${STUDENT_API}/${id}` : STUDENT_API;
         const method = id ? 'PUT' : 'POST';
 
-        fetch(url, {
+        fetchWithAuth(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(student)
         })
         .then(res => res.json())
@@ -132,6 +209,7 @@
             if (data.code === 200) {
                 alert(id ? '✅ 修改成功！' : '✅ 新增成功！');
                 clearForm();
+                currentPage = 1;
                 loadStudents();
             } else {
                 alert('❌ 操作失败：' + data.message);
@@ -142,8 +220,9 @@
         });
     }
 
+    // -------- 编辑 --------
     function editStudent(id) {
-        fetch(`${API}/${id}`)
+        fetchWithAuth(STUDENT_API + `/${id}`)
             .then(res => res.json())
             .then(data => {
                 if (data.code === 200 && data.data) {
@@ -165,13 +244,15 @@
             });
     }
 
+    // -------- 删除 --------
     function deleteStudent(id) {
         if (!confirm(`确定要删除 ID 为 ${id} 的学生吗？`)) return;
-        fetch(`${API}/${id}`, { method: 'DELETE' })
+        fetchWithAuth(STUDENT_API + `/${id}`, { method: 'DELETE' })
             .then(res => res.json())
             .then(data => {
                 if (data.code === 200) {
                     alert('✅ 删除成功！');
+                    currentPage = 1;
                     loadStudents();
                 } else {
                     alert('❌ 删除失败：' + data.message);
@@ -182,10 +263,10 @@
             });
     }
 
-    function cancelEdit() {
-        clearForm();
-    }
+    // -------- 取消编辑 --------
+    function cancelEdit() { clearForm(); }
 
+    // -------- 清空表单 --------
     function clearForm() {
         document.getElementById('editId').value = '';
         document.getElementById('nameInput').value = '';
@@ -197,8 +278,15 @@
         document.getElementById('cancelBtn').style.display = 'none';
     }
 
+    // -------- 初始化：先登录再加载数据 --------
     window.onload = function() {
-        loadStudents();
+        loginAndGetToken()
+            .then(() => {
+                loadStudents();
+            })
+            .catch(err => {
+                document.getElementById('result').innerHTML = `<p class="error">登录失败：${err.message}</p >`;
+            });
     };
 </script>
 </body>
